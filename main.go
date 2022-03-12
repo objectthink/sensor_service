@@ -18,6 +18,7 @@ type SensorStatus struct {
 	Temperature int    `json:"temperature"`
 	High        int    `json:"high"`
 	Low         int    `json:"low"`
+	Humidity    int    `json:"humidity"`
 }
 
 func natsSetup(writer api.WriteAPIBlocking) {
@@ -51,6 +52,13 @@ func natsSetup(writer api.WriteAPIBlocking) {
 			sensorStatus.Temperature)
 
 		writer.WriteRecord(context.Background(), line)
+
+		line = fmt.Sprintf("humidity,name=\"%s\",location=\"%s\" current=%d",
+			sensorStatus.Name,
+			strings.ReplaceAll(sensorStatus.Location, " ", "_"),
+			sensorStatus.Humidity)
+
+		writer.WriteRecord(context.Background(), line)
 	})
 }
 
@@ -71,62 +79,6 @@ func main() {
 
 func forever() {
 	for {
-		fmt.Printf("%v+\n", time.Now())
 		time.Sleep(time.Second)
 	}
 }
-
-/*
-func mainx() {
-	fmt.Println("hello cruel world")
-
-	// Create a new client using an InfluxDB server base URL and an authentication token
-	client := influxdb2.NewClient("http://192.168.86.31:8086", "U2Efox5YfRR8c_oCEhwO4xrlJ_Cgjj6DGDG5kqM_GB0f43o80KL-d2oUGPodgv4vXVNfI_BfK--OmpdXOZYnxg==")
-	// Use blocking write client for writes to desired bucket
-	writeAPI := client.WriteAPIBlocking("home", "test_bucket")
-	// Create point using full params constructor
-	p := influxdb2.NewPoint("stat",
-		map[string]string{"unit": "temperature"},
-		map[string]interface{}{"avg": 24.5, "max": 45.0},
-		time.Now())
-	// write point immediately
-	writeAPI.WritePoint(context.Background(), p)
-	// Create point using fluent style
-	p = influxdb2.NewPointWithMeasurement("stat").
-		AddTag("unit", "temperature").
-		AddField("avg", 23.2).
-		AddField("max", 45.0).
-		SetTime(time.Now())
-	writeAPI.WritePoint(context.Background(), p)
-
-	// Or write directly line protocol
-	line := fmt.Sprintf("stat,unit=temperature avg=%f,max=%f", 23.5, 45.0)
-	writeAPI.WriteRecord(context.Background(), line)
-
-	// Get query client
-	queryAPI := client.QueryAPI("home")
-	// Get parser flux query result
-	result, err := queryAPI.Query(context.Background(), `from(bucket:"test_bucket")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "stat")`)
-	if err == nil {
-		// Use Next() to iterate over query result lines
-		for result.Next() {
-			// Observe when there is new grouping key producing new table
-			if result.TableChanged() {
-				fmt.Printf("table: %s\n", result.TableMetadata().String())
-			}
-			// read result
-			fmt.Printf("row: %s\n", result.Record().String())
-		}
-		if result.Err() != nil {
-			fmt.Printf("Query error: %s\n", result.Err().Error())
-		}
-	}
-	// Ensures background processes finishes
-	//client.Close()
-
-	natsSetup(client)
-
-	fmt.Scanln()
-}
-*/
-
